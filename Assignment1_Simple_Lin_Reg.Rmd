@@ -1,0 +1,215 @@
+---
+title: "Assignment 1 Correlation and Simple Linear Regression"
+author: "Tom Rozanov"
+date: "2022-09-09"
+output: html_document
+---
+
+## Simple Linear Regression Assignment 1
+
+### Tom Rozanov BAN 502
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(GGally)
+library(lmtest)
+library(esquisse) #optional for ggplot functions
+#Install required packages
+```
+
+```{r}
+air = airquality #read-in data set as "air" d.f. 
+```
+
+***Question 1 How many rows are in the "air" dataframe?***
+
+***Question 2 How many columns are in the "air" dataframe?***
+
+***Question 3 True/False: There is missing data in "Ozone" variable in the dataframe.***
+
+```{r}
+str(air)
+summary(air)
+
+#examine structure of "air" data frame to answer rows & columns question
+#examine summary of "air" data frame to answer missing data question
+```
+
+Responses:
+
+Q1: There are 153 rows in the "air" dataframe.
+
+Q2: There are 6 columns/variables in the "air" data frame
+
+Q3: True. There are 37 missing rows ("NA") in the "Ozone" variable in the data frame
+
+***Question 4 Which variable is most likely to be the response (Y) variable?***
+
+```{r}
+ggpairs(air) #examine data for possible response variables
+```
+
+Q4: Ozone is the most likely to be the response variable (Y) because it has the highest correlations among other variables. Additionally, by looking at the link here <https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/airquality.html> we can see that "Ozone" represents: mean ozone in parts per billion from 1300 to 1500 hours at Roosevelt Island.
+
+*We have three approaches that we can typically select from to deal with missing data:*
+
+1.  Delete the rows with missing data
+2.  Delete the columns with missing data
+3.  Impute (i.e., estimate or guess) values to replace the missing values
+
+Here we'll choose to delete rows with any missing data. Use the code below to apply the "drop_na" function to the "air" dataframe. The resulting dataframe will be called "air2". You will use this dataframe for the remainder of the assignment.
+
+```{r}
+air2 = air %>% drop_na() #dropping missing values in the "air2" dataframe
+```
+
+**Question 5 How many rows remain in this new (air2) data frame?**
+
+**Question 6 How many columns remain in this new (air2) data frame?**
+
+```{r}
+str(air2)
+```
+
+Q5: There are 111 columns in the new "air2" data frame.
+
+Q6: There are 6 rows in the new "air2" data frame.
+
+Use the "ggpairs" function to develop a visualization of the relationships in this dataset and to show correlation values for the combinations of variables.
+
+Then use the "ggcorr" function to develop a correlation matrix for the variables. Hint: Use "label = TRUE" in the "ggcorr" function to show the correlation values.
+
+```{r}
+ggpairs (air2) #generalized pairs plot
+
+ggcorr (air2, label = TRUE) #Correlation matrix
+
+
+```
+
+***Question 7 Which variable is most strongly correlated with the "Ozone" variable?***
+
+Q7: As we can see from the correlation matrix above. "Temp" is most strongly correlated with the "Ozone" variable with a correlation of 0.7.
+
+***Question 8 Which variable is least strongly correlated with the "Ozone" variable?***
+
+Q8: As we can see from the correlation matrix above. "Day" is least strongly correlated with the "Ozone" variable with a correlation of 0.
+
+***Question 9 Plot "Temp" (x axis) versus "Ozone" (y axis) using the "ggplot" function. Choose an appropriate chart type. Which statement best describes the relationship between "Temp" and "Ozone"?***
+
+```{r}
+##esquisser(air2) using esquisser package to help with ggplot
+```
+
+```{r}
+ggplot(air2) +
+  aes(x = Temp, y = Ozone) +
+  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
+  theme_minimal()
+```
+
+Q9: As shown by the chart above, as Temp increases, Ozone increases. This is also in alignment with our previously found correlation coefficient of +0.7 (correlation matrix).
+
+*Use Tidymodels to create a linear regression model using "Temp" to predict "Ozone". You may wish to call your model fit "lm_fit".*
+
+```{r}
+#reusing code from before (just changing names where needed)
+air2_simple = recipe(Ozone ~ Temp, air2)
+
+lm_model = #give the model type a name 
+  linear_reg() %>% #specify that we are doing linear regression
+  set_engine("lm") #specify the specify type of linear tool we want to use 
+
+lm_wflow = 
+  workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(air2_simple)
+
+lm_fit = fit(lm_wflow,air2)
+```
+
+```{r}
+summary(lm_fit$fit$fit$fit)
+```
+
+```{r}
+ggplot(air2, aes(x=Temp,y=Ozone)) + geom_point() + 
+  geom_smooth(method="lm",se=FALSE, color="red") + theme_bw()
+```
+
+**Question 10** What is the slope of this regression model (to four decimal places)?
+
+Q10: 2.4391
+
+**Question 11** what is the R-squared value of this model (not Adjusted R-squared) (to three decimal places)?
+
+Q11: 0.488
+
+**Question 12** Is the "Temp" variables significant in the model?
+
+Q12: Yes, because p-value \< 0.05
+
+**Question 13** Use the code below to generate 95% confidence intervals for the coefficients. Note that you may need to change "lm_fit" to the name of your model fit if you used a different name.
+
+True/False: A 95% confidence interval for the slope coefficient does not contain zero.
+
+```{r}
+confint(lm_fit$fit$fit$fit, level = 0.90)
+
+```
+
+Q13: True
+
+**Question 14**: Using your linear regression model with "Temp" to predict "Ozone", what is the predicted "Ozone" value when "Temp" is equal to 80 (to two decimal places)?
+
+Prediction for Temp of 80?
+
+```{r}
+#Manually
+-147.6461 + 2.4391*80
+
+#Using predict function
+testdata = data.frame(Temp = 80)
+predict(lm_fit, new_data = testdata)
+```
+
+Q14: 47.48
+
+**Question 15** Perform appropriate model diagnostics to verify whether or not the model appears to meet the four linear regression model assumptions.
+
+How does this model look?
+
+How do we fare as far as our linear regression assumptions go?
+
+**Assumption 1:** The predictor and response variable have a linear relationship
+
+**Assumption 2:** Model errors (residuals) are independent\
+Let's use the Durbin-Watson Test to examine independence of residuals. The dwtest function is from the lmtest package.
+
+```{r}
+dwtest(lm_fit$fit$fit$fit)
+```
+
+We fail to reject the null hypothesis with a p-value greater than 0.05. This suggests that the residuals are likely independent.
+
+**Assumption 3:** Model residuals exhibit constant variance\
+Examine a plot of residuals.
+
+```{r}
+air2 = air2 %>% mutate(resid1 = lm_fit$fit$fit$fit$residuals) #add the model residuals to our data frame
+ggplot(air2,aes(x=Temp,y=resid1)) + geom_point() + theme_bw()
+```
+
+**Assumption 4:** Model residuals are Normally-distributed\
+Examine a histogram of the residuals.
+
+```{r}
+ggplot(air2,aes(x=resid1)) + geom_histogram() + theme_bw()
+```
+
+The residuals histogram is not what we would likely call normally distributed.
+
+True/False: There is no evidence of non-independent (autocorrelated) residuals.
+
+Q15: True.
